@@ -45,11 +45,10 @@ export const Header = () => {
   );
 };
 
-export const Listado = ({ filtro }) => {
-
+export const Listado = ({ items }) => {
   return (
     <section>
-      {comics.filter(o => o.title.toLocaleLowerCase().includes(filtro.toLocaleLowerCase())).map((comic) => (
+      {items.map((comic) => (
         <div key={comic.id} className="comicCard">
           <p className="comicTitle">{comic.title}</p>
           <p>{comic.characters.join(", ")}</p>
@@ -59,23 +58,35 @@ export const Listado = ({ filtro }) => {
   );
 };
 
-export const Footer = () => {
+export const Footer = ({ items_filtrados }) => {
   return (
     <footer>
-      <p>Footer</p>
+      <p>
+        Elementos:
+        {items_filtrados.length}
+      </p>
     </footer>
   );
 };
 
 export const Home = () => {
-  const [text, setText] = useState("");
+  const [filtro, setFiltro] = useState("");
+
+  const reg_exp = RegExp("^.*" + filtro + ".*$", "gi");
+
+  const comics_filtrados = comics.filter((comic) => comic.title.match(reg_exp));
+
   return (
     <main className="container">
       <Header />
       <p className="inputLabel">Escribe un personaje en la lista</p>
-      <SearchBox text={text} setText={setText} placeholder="Escribe el titulo" />
-      <Listado filtro={text} />
-      <Footer />
+      <SearchBox
+        text={filtro}
+        setText={setFiltro}
+        placeholder="Escribe el titulo"
+      />
+      <Listado items={comics_filtrados} />
+      <Footer items_filtrados={comics_filtrados} />
     </main>
   );
 };

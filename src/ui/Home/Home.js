@@ -1,35 +1,68 @@
 import React, { useState, useEffect } from "react";
-import "./Home.css";
 import { api } from "../../api";
+import "./Home.css";
 
 export const Home = () => {
+  const [characters, setCharacters] = useState([]);
+  const [character_1, setCharacter_1] = useState("");
+  const [character_2, setCharacter_2] = useState("");
   const [comics, setComics] = useState([]);
+  const [commonCommics, setCommonCommics] = useState([]);
 
-  const fetchData = async () => {
+  const fetchAllComics = async () => {
     const data = await api.allComics();
     setComics(data);
   };
 
+  const fetchComicsById = async (character_1, character_2) => {
+    if (character_1 === "" || character_2 === "") {
+      return;
+    }
+
+    const comics_1 = await api.comics(character_1);
+    const comics_2 = await api.comics(character_2);
+    setCommonCommics(
+      comics_1.filter((comic1) =>
+        comics_2.some((comic2) => comic1.id === comic2.id)
+      )
+    );
+  };
+
+  const fetchCharacters = async () => {
+    const data = await api.characters();
+    setCharacters(data);
+  };
+
   useEffect(() => {
-    fetchData().catch(console.error);
-  }, []);
+    fetchAllComics().catch(console.error);
+    fetchComicsById(character_1, character_2).catch(console.error);
+    fetchCharacters().catch(console.error);
+  }, [character_1, character_2, commonCommics]);
 
-  const [filter, setFilter] = useState("");
-
-  const filteredComics = comics.filter((comic) =>
-    comic.title.toLowerCase().includes(filter.toLowerCase())
-  );
+  const test =
+    character_1 === "" || character_2 === ""
+      ? []
+      : comics.filter((comic) =>
+          commonCommics.some((common) => comic.id === common.id)
+        );
 
   return (
     <main className="container">
       <Header />
-      <ComicList comics={filteredComics} filter={filter} onFilter={setFilter} />
-      <Footer itemsCount={filteredComics.length} />
+      <ComicList
+        comics={test}
+        characters={characters}
+        character_1={character_1}
+        setCharacter_1={setCharacter_1}
+        character_2={character_2}
+        setCharacter_2={setCharacter_2}
+      />
+      <Footer itemsCount={test.length} />
     </main>
   );
 };
 
-export const Header = () => {
+const Header = () => {
   return (
     <header>
       <h1 className="title">Buscador de cómics de Marvel</h1>
@@ -41,35 +74,40 @@ export const Header = () => {
   );
 };
 
-export const ComicList = ({ filter, onFilter, comics }) => {
-  const colors = ["#92c952", "#771796", "#24f355", "#d32776", "#f66b97"];
-  const [value, setValue] = React.useState(0);
-
-  useEffect(() => {
-    setValue((v) => {
-      return v === 4 ? 0 : v + 1;
-    });
-  }, [filter]);
-
+const ComicList = ({
+  comics,
+  characters,
+  character_1,
+  character_2,
+  setCharacter_1,
+  setCharacter_2,
+}) => {
   return (
     <section>
-      <p className="inputLabel">Escribe un personaje en la lista</p>
+      <p className="inputLabel">Selecciona una pareja de personajes</p>
       <div className="inputContainer">
-        <input
-          className="filterInput"
-          onInput={(e) => onFilter(e.target.value)}
-          value={filter}
+        <Select
+          character={character_1}
+          options={characters}
+          setCharacter={setCharacter_1}
         />
-        <button className="clearButton" onClick={() => onFilter("")}>
+        <Select
+          character={character_2}
+          options={characters}
+          setCharacter={setCharacter_2}
+        />
+        <button
+          onClick={() => {
+            setCharacter_1("");
+            setCharacter_2("");
+          }}
+          className="clearButton"
+        >
           Limpiar búsqueda
         </button>
       </div>
       {comics.map((comic) => (
-        <div
-          key={comic.id}
-          className="comicCard"
-          style={{ backgroundColor: colors[value] }}
-        >
+        <div key={comic.id} className="comicCard">
           <p className="comicTitle">{comic.title}</p>
           <p>{comic.characters.join(", ")}</p>
         </div>
@@ -78,10 +116,29 @@ export const ComicList = ({ filter, onFilter, comics }) => {
   );
 };
 
-export const Footer = ({ itemsCount }) => {
+const Footer = ({ itemsCount }) => {
   return (
     <footer>
       <p>Elementos en la lista: {itemsCount}</p>
     </footer>
+  );
+};
+
+const Select = ({ options, setCharacter, character }) => {
+  return (
+    <select
+      value={character}
+      onChange={(e) => setCharacter(e.target.value)}
+      className="characterSelector"
+    >
+      <option key="" value="" />
+      {options.map((option) => {
+        return (
+          <option key={option.value} value={option.id}>
+            {option.name}
+          </option>
+        );
+      })}
+    </select>
   );
 };

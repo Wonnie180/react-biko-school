@@ -12,6 +12,15 @@
 .container {
   padding: var(--size-l) var(--size-xxl);
   height: 100vh;
+  color: black;
+  background-color: white;
+}
+
+.container_black {
+  padding: var(--size-l) var(--size-xxl);
+  height: 100vh;
+  color: white;
+  background-color: black;
 }
 
 .title {

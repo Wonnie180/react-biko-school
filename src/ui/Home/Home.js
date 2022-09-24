@@ -7,12 +7,6 @@ export const Home = () => {
   const [character_1, setCharacter_1] = useState("");
   const [character_2, setCharacter_2] = useState("");
   const [comics, setComics] = useState([]);
-  const [commonCommics, setCommonCommics] = useState([]);
-
-  const fetchAllComics = async () => {
-    const data = await api.allComics();
-    setComics(data);
-  };
 
   const fetchComicsById = async (character_1, character_2) => {
     if (character_1 === "" || character_2 === "") {
@@ -21,7 +15,7 @@ export const Home = () => {
 
     const comics_1 = await api.comics(character_1);
     const comics_2 = await api.comics(character_2);
-    setCommonCommics(
+    setComics(
       comics_1.filter((comic1) =>
         comics_2.some((comic2) => comic1.id === comic2.id)
       )
@@ -34,30 +28,26 @@ export const Home = () => {
   };
 
   useEffect(() => {
-    fetchAllComics().catch(console.error);
-    fetchComicsById(character_1, character_2).catch(console.error);
     fetchCharacters().catch(console.error);
-  }, [character_1, character_2, commonCommics]);
+  }, []);
 
-  const test =
-    character_1 === "" || character_2 === ""
-      ? []
-      : comics.filter((comic) =>
-          commonCommics.some((common) => comic.id === common.id)
-        );
+  useEffect(() => {
+    setComics([]);
+    fetchComicsById(character_1, character_2).catch(console.error);
+  }, [character_1, character_2]);
 
   return (
     <main className="container">
       <Header />
       <ComicList
-        comics={test}
+        comics={comics}
         characters={characters}
         character_1={character_1}
         setCharacter_1={setCharacter_1}
         character_2={character_2}
         setCharacter_2={setCharacter_2}
       />
-      <Footer itemsCount={test.length} />
+      <Footer itemsCount={comics.length} />
     </main>
   );
 };
@@ -82,18 +72,22 @@ const ComicList = ({
   setCharacter_1,
   setCharacter_2,
 }) => {
+  const selectOptions = characters.map((character) => ({
+    value: character.id,
+    label: character.name,
+  }));
   return (
     <section>
       <p className="inputLabel">Selecciona una pareja de personajes</p>
       <div className="inputContainer">
         <Select
           character={character_1}
-          options={characters}
+          options={selectOptions}
           setCharacter={setCharacter_1}
         />
         <Select
           character={character_2}
-          options={characters}
+          options={selectOptions}
           setCharacter={setCharacter_2}
         />
         <button
@@ -134,8 +128,8 @@ const Select = ({ options, setCharacter, character }) => {
       <option key="" value="" />
       {options.map((option) => {
         return (
-          <option key={option.value} value={option.id}>
-            {option.name}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         );
       })}

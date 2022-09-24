@@ -1,144 +1,134 @@
-import React, { useState, useEffect } from "react";
-import { api } from "../../api";
-import "./Home.css";
+import './Home.css'
+import React, { useEffect, useState } from 'react'
+import { api } from '../../api'
 
 export const Home = () => {
-  const [characters, setCharacters] = useState([]);
-  const [character_1, setCharacter_1] = useState("");
-  const [character_2, setCharacter_2] = useState("");
-  const [comics, setComics] = useState([]);
-  const [commonCommics, setCommonCommics] = useState([]);
-
-  const fetchAllComics = async () => {
-    const data = await api.allComics();
-    setComics(data);
-  };
-
-  const fetchComicsById = async (character_1, character_2) => {
-    if (character_1 === "" || character_2 === "") {
-      return;
-    }
-
-    const comics_1 = await api.comics(character_1);
-    const comics_2 = await api.comics(character_2);
-    setCommonCommics(
-      comics_1.filter((comic1) =>
-        comics_2.some((comic2) => comic1.id === comic2.id)
-      )
-    );
-  };
-
-  const fetchCharacters = async () => {
-    const data = await api.characters();
-    setCharacters(data);
-  };
+  const [firstCharacterSelect, setFirstCharacterSelect] = useState()
+  const [secondCharacterSelect, setSecondCharacterSelect] = useState()
+  const [characters, setCharacters] = useState([])
+  const [comics, setComics] = useState([])
 
   useEffect(() => {
-    fetchAllComics().catch(console.error);
-    fetchComicsById(character_1, character_2).catch(console.error);
-    fetchCharacters().catch(console.error);
-  }, [character_1, character_2, commonCommics]);
+    const fetchCharacters = async () => {
+      const characters = await api.characters()
+      setCharacters(characters)
+    }
 
-  const test =
-    character_1 === "" || character_2 === ""
-      ? []
-      : comics.filter((comic) =>
-          commonCommics.some((common) => comic.id === common.id)
-        );
+    fetchCharacters()
+  }, [])
+
+  useEffect(() => {
+    if (!firstCharacterSelect || !secondCharacterSelect) return
+
+    const getCommonComics = async () => {
+      const firstCharacterComics = await api.comics(firstCharacterSelect)
+      const secondCharacterComics = await api.comics(secondCharacterSelect)
+
+      const commonComics = firstCharacterComics.filter(comic1 => secondCharacterComics.some(comic2 => comic1.id === comic2.id))
+
+      setComics(commonComics)
+    }
+
+    getCommonComics()
+  }, [firstCharacterSelect, secondCharacterSelect])
+
+  const clearSearch = () => {
+    setFirstCharacterSelect(undefined)
+    setSecondCharacterSelect(undefined)
+    setComics([])
+  }
 
   return (
     <main className="container">
       <Header />
-      <ComicList
-        comics={test}
-        characters={characters}
-        character_1={character_1}
-        setCharacter_1={setCharacter_1}
-        character_2={character_2}
-        setCharacter_2={setCharacter_2}
+      <ComicList characters={characters}
+                 firstCharacterSelect={firstCharacterSelect}
+                 secondCharacterSelect={secondCharacterSelect}
+                 onFirstCharacterSelect={setFirstCharacterSelect}
+                 onSecondCharacterSelect={setSecondCharacterSelect}
+                 comics={comics}
+                 onClear={clearSearch}
       />
-      <Footer itemsCount={test.length} />
+      <Footer itemsCount={comics.length} />
     </main>
-  );
-};
+  )
+}
 
 const Header = () => {
   return (
     <header>
-      <h1 className="title">Buscador de cómics de Marvel</h1>
+      <div className="checkboxContainer">
+        <span className="checkboxLabel">El tema actual es: claro</span>
+        <input className="checkbox" type="checkbox" />
+      </div>
+      <h1 className="title">
+        Buscador de cómics de Marvel
+      </h1>
       <h2 className="subtitle">
-        Este buscador encontrará los cómics en los que aparezcan los dos
-        personajes que selecciones en el formulario
+        Este buscador encontrará los cómics en los que aparezcan los dos personajes que selecciones en el formulario
       </h2>
     </header>
-  );
-};
+  )
+}
 
 const ComicList = ({
-  comics,
-  characters,
-  character_1,
-  character_2,
-  setCharacter_1,
-  setCharacter_2,
-}) => {
+                     comics,
+                     characters,
+                     firstCharacterSelect,
+                     secondCharacterSelect,
+                     onFirstCharacterSelect,
+                     onSecondCharacterSelect,
+                     onClear
+                   }) => {
+  const selectOptions = characters.map(character => ({ value: character.id, label: character.name }))
+
   return (
     <section>
-      <p className="inputLabel">Selecciona una pareja de personajes</p>
+      <p className="inputLabel">
+        Selecciona una pareja de personajes
+      </p>
       <div className="inputContainer">
-        <Select
-          character={character_1}
-          options={characters}
-          setCharacter={setCharacter_1}
-        />
-        <Select
-          character={character_2}
-          options={characters}
-          setCharacter={setCharacter_2}
-        />
-        <button
-          onClick={() => {
-            setCharacter_1("");
-            setCharacter_2("");
-          }}
-          className="clearButton"
-        >
-          Limpiar búsqueda
-        </button>
+        <Select options={selectOptions} value={firstCharacterSelect} onChange={onFirstCharacterSelect} />
+        <Select options={selectOptions} value={secondCharacterSelect} onChange={onSecondCharacterSelect} />
+        <button className="clearButton" onClick={() => onClear()}>Limpiar búsqueda</button>
       </div>
-      {comics.map((comic) => (
+      {comics.map(comic => (
         <div key={comic.id} className="comicCard">
-          <p className="comicTitle">{comic.title}</p>
-          <p>{comic.characters.join(", ")}</p>
+          <p className="comicTitle">
+            {comic.title}
+          </p>
+          <p>{comic.characters.join(', ')}</p>
         </div>
       ))}
     </section>
-  );
-};
+  )
+}
 
 const Footer = ({ itemsCount }) => {
   return (
     <footer>
       <p>Elementos en la lista: {itemsCount}</p>
     </footer>
-  );
-};
+  )
+}
 
-const Select = ({ options, setCharacter, character }) => {
+const Select = ({ options, value = '', onChange }) => {
   return (
-    <select
-      value={character}
-      onChange={(e) => setCharacter(e.target.value)}
-      className="characterSelector"
-    >
-      <option key="" value="" />
-      {options.map((option) => {
-        return (
-          <option key={option.value} value={option.id}>
-            {option.name}
-          </option>
-        );
-      })}
+    <select className="characterSelector" value={value} onChange={e => onChange(e.target.value)}>
+      <option value="" />
+      {
+        options.map(option => {
+          return <option key={option.value} value={option.value}>{option.label}</option>
+        })
+      }
     </select>
-  );
-};
+  )
+}
+
+
+
+
+
+
+
+
